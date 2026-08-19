@@ -1,0 +1,47 @@
+name = "regtest"
+
+# Development environment (folders added to the path when project is loaded)
+[folders]
+path = [
+    ".",
+]
+test = [
+    "tests",
+]
+
+[dependencies]
+PkgBuild = {version = ">=1.0", id = "88a98551-056e-41b9-ac04-3f9a08225bf9"}
+
+[project]
+summary = "Tool to add regression checkpoints to messy MATLAB code"
+
+[[package]]
+configuration-name = "Release"
+
+name = "regtest"
+display-name = "MATLAB Regression Test"
+version = "0.3.0"
+
+# Should match UUID assigned by File Exchange
+id = "c4287825-684c-46c2-811e-e0e0f0978b07"
+
+# Execution environment (folders added to end-user path)
+package-root = "/"
+folders.path = ["."]
+
+use-license-bsd = true
+provider.name = "Martin Herrerias Azcue"
+provider.email = "martin.herreriasazcue@manchester.ac.uk"
+provider.organization = "University of Manchester"
+summary = "Tool to add regression checkpoints to messy MATLAB code"
+description = "A development tool for refactoring MATLAB code with little or no tests. Insert minimally invasive checkpoints to capture workspace snapshots, then use them to verify that refactored code produces the same results."
+
+getting-started-file = "example/getting_started.m"
+preview-image-file = "resources/spaghetti.png"
+
+release-compatibility = "22.1.* - 26.2.*"
+supported-platforms = [
+    "windows",
+    "linux",
+    "macos",
+]
