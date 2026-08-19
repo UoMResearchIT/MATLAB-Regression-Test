@@ -1,5 +1,5 @@
-function tests = TestCheckpointTest()
-% Tests for WorkspaceBackup class
+function tests = TestCheckpoint()
+% Tests for regtest.WorkspaceBackup class
 
     tests = functiontests(localfunctions);
 end
@@ -8,7 +8,7 @@ function setupOnce(testCase)
 
     addpath('..');
 
-    testCase.TestData.session = TestCheckpoint.session;
+    testCase.TestData.session = regtest.Checkpoint.session;
     testCase.TestData.origPath = testCase.TestData.session.path;
     tmpdir = tempname();
     mkdir(tmpdir)
@@ -25,21 +25,21 @@ function teardown(testCase)
 end
 
 function test_empty(testCase)
-    obj = TestCheckpoint.empty;
+    obj = regtest.Checkpoint.empty;
     verifyEmpty(testCase, obj);
 end
 
 function test_constructor(testCase)
 % Just check that setup worked alright
 
-    obj = TestCheckpoint('foo','bar');
+    obj = regtest.Checkpoint('foo','bar');
 
-    verifyInstanceOf(testCase, obj,'TestCheckpoint');
+    verifyInstanceOf(testCase, obj,'regtest.Checkpoint');
     verifyEqual(testCase, obj.id, 'foo');
     verifyEqual(testCase, obj.call, "bar");
 
-    verifyInstanceOf(testCase, obj.input,'WorkspaceBackup');
-    verifyInstanceOf(testCase, obj.output,'WorkspaceBackup');
+    verifyInstanceOf(testCase, obj.input,'regtest.WorkspaceBackup');
+    verifyInstanceOf(testCase, obj.output,'regtest.WorkspaceBackup');
     verifyNotEmpty(testCase, obj.input.file);
     verifyNotEmpty(testCase, obj.output.file);
 
@@ -47,13 +47,13 @@ function test_constructor(testCase)
 end
 
 function [obj, x, y, z] = example(varargin)
-% Return a TestCheckpoint object, and variables to test it with
+% Return a regtest.Checkpoint object, and variables to test it with
 
     % "personalize" ID, so that it is different for each test
     s = dbstack(1);
     id = s(1).name;
 
-    obj = TestCheckpoint(id,'dummy(x,y)', varargin{:}, ...
+    obj = regtest.Checkpoint(id,'dummy(x,y)', varargin{:}, ...
             'input', {'onlynames', {'x','y'}}, ...
             'output', {'onlynames', 'z'});
     x = 1;
@@ -72,7 +72,7 @@ end
 
 function test_full_constructor(testCase)
     obj = example('state','idle','spyname','foo');
-    verifyInstanceOf(testCase, obj,'TestCheckpoint');
+    verifyInstanceOf(testCase, obj,'regtest.Checkpoint');
 
     verifyEqual(testCase, obj.state,'idle');
     verifyNotEmpty(testCase, obj.spyname,'foo');
@@ -80,31 +80,31 @@ end
 
 function test_session_index(testCase)
     
-    obj = TestCheckpoint('test_1','foo');
+    obj = regtest.Checkpoint('test_1','foo');
 
-    verifyInstanceOf(testCase, TestCheckpoint.session.tests, 'struct');
-    verifyTrue(testCase, isfield(TestCheckpoint.session.tests,'test_1'));
+    verifyInstanceOf(testCase, regtest.Checkpoint.session.tests, 'struct');
+    verifyTrue(testCase, isfield(regtest.Checkpoint.session.tests,'test_1'));
 
-    verifyInstanceOf(testCase, TestCheckpoint.session.tests.test_1,'TestCheckpoint');
-    verifySameHandle(testCase, obj, TestCheckpoint.session.tests.test_1);
+    verifyInstanceOf(testCase, regtest.Checkpoint.session.tests.test_1,'regtest.Checkpoint');
+    verifySameHandle(testCase, obj, regtest.Checkpoint.session.tests.test_1);
 
-    verifyWarning(testCase, @() TestCheckpoint('test_1','foo'), 'TestSession:push:exists');
-    verifyWarningFree(testCase, @() TestCheckpoint('test_2','foo'));
-    verifyEqual(testCase, TestCheckpoint.session.ids, {'test_1','test_2'}');
+    verifyWarning(testCase, @() regtest.Checkpoint('test_1','foo'), 'regtest:Session:push:exists');
+    verifyWarningFree(testCase, @() regtest.Checkpoint('test_2','foo'));
+    verifyEqual(testCase, regtest.Checkpoint.session.ids, {'test_1','test_2'}');
 end
 
 function test_hard_index(testCase)
 % Check that session index is stored persistently in session.indexfile
 
-    TestCheckpoint('test_1','foo');
-    TestCheckpoint('test_2','bar');
-    TestCheckpoint('test_3','bam');
+    regtest.Checkpoint('test_1','foo');
+    regtest.Checkpoint('test_2','bar');
+    regtest.Checkpoint('test_3','bam');
 
-    TestCheckpoint.session.reset(false)
-    verifyEqual(testCase, TestCheckpoint.session.ids, cell(0,1));
+    regtest.Checkpoint.session.reset(false)
+    verifyEqual(testCase, regtest.Checkpoint.session.ids, cell(0,1));
 
-    TestCheckpoint.session.restore();
-    verifyEqual(testCase, TestCheckpoint.session.ids, {'test_1','test_2','test_3'}');
+    regtest.Checkpoint.session.restore();
+    verifyEqual(testCase, regtest.Checkpoint.session.ids, {'test_1','test_2','test_3'}');
 end
 
 function test_idle(testCase)
@@ -131,15 +131,15 @@ function test_setup_input(testCase)
 end
 
 function test_non_intrusive(testCase)
-% obj.do will temporarily copy a variable (named TestCheckpoint.DEF_SPYNAME by default) into the caller workspace
+% obj.do will temporarily copy a variable (named regtest.Checkpoint.DEF_SPYNAME by default) into the caller workspace
 % it should be renamed if it clashes with an already existing name
 
     [obj, x, y] = example('state','setup'); %#ok<ASGLU>
 
-    eval([TestCheckpoint.DEF_SPYNAME '= [];']);
+    eval([regtest.Checkpoint.DEF_SPYNAME '= [];']);
 
     obj.do('input');
-    verifyEmpty(testCase, eval(TestCheckpoint.DEF_SPYNAME));
+    verifyEmpty(testCase, eval(regtest.Checkpoint.DEF_SPYNAME));
 end
 
 function test_spyname(testCase)
@@ -148,7 +148,7 @@ function test_spyname(testCase)
 
     obj = example('state','setup');
 
-    verifyError(testCase, @do_backup, 'TestCheckpoint:do:err_static_workspace_violation');
+    verifyError(testCase, @do_backup, 'regtest:Checkpoint:do:err_static_workspace_violation');
 
     obj.spyname = 'foo';
     verifyWarningFree(testCase, @do_backup);
@@ -168,7 +168,7 @@ function test_setup_output(testCase)
     assert(~isfile(obj.input.file));
     assert(~isfile(obj.output.file));
 
-    verifyWarning(testCase, @do_output, 'TestCheckpoint:do:order');
+    verifyWarning(testCase, @do_output, 'regtest:Checkpoint:do:order');
     verifyTrue(testCase, isfile(obj.output.file))
     verifyEqual(testCase, obj.output.restore, struct('z', 42));
 
@@ -179,16 +179,18 @@ function test_setup_output(testCase)
 end
 
 function test_auto(testCase)
-% basic auto-setup cycle for fresh test
+% basic setup cycle for fresh test
 
     [obj, x, y] = example(); %#ok<ASGLU>
     assert(~isfile(obj.input.file));
     assert(~isfile(obj.output.file));
 
-    verifyEqual(testCase, obj.state,'setup')
+    verifyEqual(testCase, obj.state,'idle')
 
+    obj.state = 'setup';
     obj.do('input');
     obj.do('output');
+
     verifyTrue(testCase, isfile(obj.input.file))
     verifyTrue(testCase, isfile(obj.input.file))
     verifyEqual(testCase, obj.state,'idle')
@@ -200,6 +202,7 @@ function test_instrumented_script(testCase)
     [obj,x,y] = example();
 
     % Setup run
+    obj.state = 'setup';
     z = instrumented_function(x,y);
 
     verifyTrue(testCase, isfile(obj.input.file));
@@ -215,7 +218,7 @@ end
 
 function z = instrumented_function(x, y)
 
-    obj = TestCheckpoint.session.tests.test_instrumented_script;
+    obj = regtest.Checkpoint.session.tests.test_instrumented_script;
     obj.do('input');
 
     z = dummy(x, y);

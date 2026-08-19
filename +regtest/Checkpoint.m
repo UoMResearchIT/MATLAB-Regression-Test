@@ -1,14 +1,14 @@
-classdef TestCheckpoint < handle
-% TESTCHECKPOINT - Tool to add automatic checkpoints to messy code (that can later be turned into unit tests).
+classdef Checkpoint < handle
+% regtest.Checkpoint - Tool to add automatic checkpoints to messy code (that can later be turned into unit tests).
 % See README.md for design use-case.
 
     properties
         id char {mustBeTextScalar} % unique test identifyer
         call (1,:) string % code to run to get from input to output
-        input WorkspaceBackup % Dump settings before call (WorkspaceBackup object, or cell-array of arguments for its construction) 
-        output WorkspaceBackup % Dump settings after call (WorkspaceBackup object, or cell-array of arguments for its construction)
-        state char {mustBeTextScalar, mustBeMember(state, {'','idle', 'setup','test'})} % See TestCheckpoint.do
-        spyname char {mustBeTextScalar, mustBeValidVariableNameOrEmpty} = '' % name of WorkspaceBackup object, when copied onto 'caller'
+        input regtest.WorkspaceBackup % Dump settings before call (regtest.WorkspaceBackup object, or cell-array of arguments for its construction) 
+        output regtest.WorkspaceBackup % Dump settings after call (regtest.WorkspaceBackup object, or cell-array of arguments for its construction)
+        state char {mustBeTextScalar, mustBeMember(state, {'','idle', 'setup','test'})} % See regtest.Checkpoint.do
+        spyname char {mustBeTextScalar, mustBeValidVariableNameOrEmpty} = '' % name of regtest.WorkspaceBackup object, when copied onto 'caller'
     end
 
     properties(Dependent)
@@ -16,47 +16,47 @@ classdef TestCheckpoint < handle
     end
 
     properties(Constant)
-        session (1,1) TestSession = TestSession() % defines default test-path, state, and index of tests
+        session (1,1) regtest.Session = regtest.Session() % defines default test-path, state, and index of tests
     end
 
     properties(Constant, Hidden)
-        DEF_SPYNAME char {mustBeValidVariableName} = 'TestCheckpointIO'
+        DEF_SPYNAME char {mustBeValidVariableName} = 'CheckpointIO'
     end
 
     methods (Hidden)
         function name = filename(obj, type)
             mustBeMember(type, {'input','output','test'});
-            name = fullfile(TestCheckpoint.session.path, [obj.id '_' type '.mat']);
+            name = fullfile(regtest.Checkpoint.session.path, [obj.id '_' type '.mat']);
         end
     end
     
     methods
-        function obj = TestCheckpoint(id, call, opts)
-        % TESTCHECKPOINT(ID, CALL, ...)
-        % TESTCHECKPOINT(.., 'input', {<args>}) - provide optional arguments to WorkspaceBackup constructors
+        function obj = Checkpoint(id, call, opts)
+        % regtest.Checkpoint(ID, CALL, ...)
+        % regtest.Checkpoint(.., 'input', {<args>}) - provide optional arguments to regtest.WorkspaceBackup constructors
 
             arguments
                 id char {mustBeTextScalar, mustBeValidVariableName}
                 call (1,:) string {mustBeText} = ""
                 opts.input (1,:) cell = {}
                 opts.output (1,:) cell = {}
-                opts.state char {mustBeTextScalar, mustBeMember(opts.state, {'','idle', 'setup','test'})} = ''
+                opts.state char {mustBeTextScalar, mustBeMember(opts.state, {'idle', 'setup','test'})} = 'idle'
                 opts.spyname char {mustBeValidVariableNameOrEmpty} = ''
+            end
+
+            if ismember(id, obj.session.ids) && nargin == 1
+                obj = obj.session.tests.(id);
+                return
             end
 
             obj.id = id;
             obj.call = call;
             
-            obj.input = WorkspaceBackup(obj.filename('input'), 'interactive', 0, opts.input{:});
-            obj.output = WorkspaceBackup(obj.filename('output'), 'interactive', 0, opts.output{:});
+            obj.input = regtest.WorkspaceBackup(obj.filename('input'), 'interactive', 0, opts.input{:});
+            obj.output = regtest.WorkspaceBackup(obj.filename('output'), 'interactive', 0, opts.output{:});
 
             obj.spyname = opts.spyname;
             obj.state = opts.state;
-            if isempty(obj.state)
-                if isfile(obj.input.file) && isfile(obj.output.file), obj.state = 'idle';
-                else, obj.state = 'setup';
-                end
-            end
 
             % Register test in session.index
             obj.session.push(obj);
@@ -82,7 +82,7 @@ classdef TestCheckpoint < handle
             if strcmp(obj.state,'idle'), return; end
             assert(~isempty(obj.state), 'OBJ.state cannot be empty');
             
-            % get relevant WorspaceBackup object
+            % get relevant WorkspaceBackup object
             mustBeTextScalar(stage); 
             mustBeMember(stage,{'input','output'});
 
@@ -91,7 +91,7 @@ classdef TestCheckpoint < handle
             % [input/output].backup in caller workspace
 
                 if strcmp(stage,'output') && ~isfile(obj.input.file)
-                    warning('TestCheckpoint:do:order', 'Writing checkpoint output before input'); 
+                    warning('regtest:Checkpoint:do:order', 'Writing checkpoint output before input'); 
                 end
                 io = obj.(stage); 
                 todo = '.backup';
@@ -115,10 +115,10 @@ classdef TestCheckpoint < handle
             switch todo
             case '.backup'
                 if isfile(io.file)
-                    warning('TestCheckpoint:do:overwrite', 'Overwriting checkpoint: %s', io.file); 
+                    warning('regtest:Checkpoint:do:overwrite', 'Overwriting checkpoint: %s', io.file); 
                 end
             case '.restore'
-                assert(isfile(io.file), 'TestCheckpoint:do:notestfile', 'Failed to find checkpoint: %s', io.file);
+                assert(isfile(io.file), 'regtest:Checkpoint:do:notestfile', 'Failed to find checkpoint: %s', io.file);
             otherwise
                 error('You should not be here');
             end
@@ -142,8 +142,8 @@ classdef TestCheckpoint < handle
 
             catch ERR
                 if strcmp(ERR.identifier, 'MATLAB:err_static_workspace_violation')
-                    error('TestCheckpoint:do:err_static_workspace_violation',...
-                            ['TestCheckpoint.do cannot work on a static workspace, unless you ', ...
+                    error('regtest:Checkpoint:do:err_static_workspace_violation',...
+                            ['regtest.Checkpoint.do cannot work on a static workspace, unless you ', ...
                             'define a dummy variable and pass the name to obj.spyname'])
                 else
                     rethrow(ERR);

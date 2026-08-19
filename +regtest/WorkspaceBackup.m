@@ -1,15 +1,15 @@
 classdef WorkspaceBackup
-% WORKSPACEBACKUP - helper class to save/restore variables in workspace.
+% regtest.WorkspaceBackup - helper class to save/restore variables in workspace.
 % 
-%   Without further arguments, the call:
+% Without further arguments, the call:
 % 
-%       obj = WORKSPACEBACKUP('foo.mat');
-%       obj.backup();
+%     obj = regtest.WorkspaceBackup('foo.mat');
+%     obj.backup();
 %
-%   Is in most cases equivalent to save('foo.mat'). 
+% Is in most cases equivalent to save('foo.mat'). 
 % The main method can be summarized as:
 %
-%       obj.backup = @() evalin(obj.workspace, 'save(<variables>)')  
+%     obj.backup = @() evalin(obj.workspace, 'save(<variables>)')  
 %
 %   where the list of <variables> is parsed 
 %
@@ -29,20 +29,25 @@ classdef WorkspaceBackup
 %
 % Examples:
 %
-%   % Almmost* equivalent to save('foo.mat', 'a', 'b', 'c'):
-%   obj = WORKSPACEBACKUP('foo.mat', 'onlynames', {'a','b','c'}); 
+%   % Almost* equivalent to save('foo.mat', 'a', 'b', 'c'):
+%   obj = regtest.WorkspaceBackup('foo.mat', 'onlynames', {'a','b','c'}); 
 %   obj.backup();
 %
-%   % Almmost* equivalent to evalin('base','save ''foo.mat''')
-%   obj = WORKSPACEBACKUP('foo.mat','workspace','base'); obj.backup();
+%   % Almost* equivalent to evalin('base','save ''foo.mat''')
+%   obj = regtest.WorkspaceBackup('foo.mat','workspace','base');
+%   obj.backup();
 %
-%   % (*) For exact equivalents, make sure to set 'skipclasses', {}
+%   % (*) For exact equivalents, add: 'skipclasses', {}
 %
-%   % Thigs that are clunkier to do with save:
-%   obj = WORKSPACEBACKUP(file, 'skipnames', {'trash','foo'}); obj.backup();
-%   obj = WORKSPACEBACKUP(file, 'onlyclasses', {'double'}); obj.backup();
+%   % Things that are clunkier to do with save:
+%   obj = regtest.WorkspaceBackup(file, 'skipnames', {'trash','foo'});
+%   obj.backup();
 %
-%   obj = WORKSPACEBACKUP(file, 'skipnames', {'a','b','c'}, 'skipclasses', {'matlab.graphics'});
+%   obj = regtest.WorkspaceBackup(file, 'onlyclasses', {'double'});
+%   obj.backup();
+%
+%   obj = regtest.WorkspaceBackup(file, 'skipnames', {'a','b','c'},...
+%       'skipclasses', {'matlab.graphics'});
 %   ...
 %   if there_is_danger, obj.backup; end
 %   ...
@@ -53,7 +58,7 @@ classdef WorkspaceBackup
 properties
     file char {mustBeTextScalar} = '' % Backup file name
     skipnames (1,:) string {mustBeText} = {}  % Variables in workspace that should not be saved
-    skipclasses (1,:) string {mustBeText} =  WorkspaceBackup.SKIPCLASSES % Variables with classes that should not be saved
+    skipclasses (1,:) string {mustBeText} =  regtest.WorkspaceBackup.SKIPCLASSES % Variables with classes that should not be saved
     onlynames (1,:) string {mustBeText} = {}  % Exclusively save variables in this list
     onlyclasses (1,:) string {mustBeText} = {}  % Exclusively save variables with classes in this list
     workspace char {mustBeTextScalar, mustBeMember(workspace, {'caller', 'base'})} = 'caller'  % Workspace option: 'base' or 'caller' (default)
@@ -63,14 +68,15 @@ end
 
 properties (Constant, Hidden)
     SKIPCLASSES = {'matlab.graphics', 'distributed', 'parallel.ProcessPool','onCleanup',...
-        'function_handle','WorkspaceBackup','TestCheckpoint'};
+        'function_handle','regtest.WorkspaceBackup','regtest.Checkpoint'};
 end
 
 methods
     function obj = WorkspaceBackup(varargin)
-    % WORKSPACEBACKUP(FILE, ...) takes all other properties as name/value pairs.
+    % regtest.WorkspaceBackup(FILE, ...) takes all other properties as name/value pairs.
 
         if nargin == 0, return; end
+        obj = regtest.WorkspaceBackup();
         obj = set(obj, 'file', varargin{:});
     end
 
@@ -78,7 +84,7 @@ methods
     % obj = obj.SET('name', val, ...) - set multiple properties at once
 
         arguments
-            obj WorkspaceBackup
+            obj regtest.WorkspaceBackup
         end
         arguments (Repeating)
             names char {mustBeTextScalar}
@@ -90,7 +96,7 @@ methods
         end
 
         if nargout == 0
-            warning('WorkspaceBackup:set:nargout','This is not a handle class, set properties will be lost')
+            warning('regtest:WorkspaceBackup:set:nargout','This is not a handle class, set properties will be lost')
         end
     end
 
@@ -102,14 +108,14 @@ methods
         mustBeTextScalar(val);
         [path, base, ext] = fileparts(val);
 
-        assert(isempty(path) || isfolder(path), 'WorkspaceBackup:setfile:path', 'Failed to find path %s', path);
+        assert(isempty(path) || isfolder(path), 'regtest:WorkspaceBackup:setfile:path', 'Failed to find path %s', path);
         
-        assert(~isempty(regexp(base, '^[\w\-. ]+$', 'once')), 'WorkspaceBackup:setfile:name', ...
+        assert(~isempty(regexp(base, '^[\w\-. ]+$', 'once')), 'regtest:WorkspaceBackup:setfile:name', ...
             'Invalid file name: "%s", make sure to write hidden files with .mat extension', base)
 
         if isempty(ext), ext = '.mat'; end
-        assert(strcmp(ext, '.mat'), 'WorkspaceBackup:setfile:ext', ...
-            'WorkspaceBackup currently only supports .mat file extensions');
+        assert(strcmp(ext, '.mat'), 'regtest:WorkspaceBackup:setfile:ext', ...
+            'regtest.WorkspaceBackup currently only supports .mat file extensions');
 
         obj.file = fullfile(path, [base ext]);
     end
@@ -119,12 +125,12 @@ methods
     %   then and save variables to OBJ.file
     %
     % [OBJ, VARS] = OBJ.BACKUP - return original object*, and cellstr of saved variables.
-    %   (*) this is to allow the syntax: OBJ = WorkspaceBackup('myfile.mat').BACKUP();
+    %   (*) this is to allow the syntax: OBJ = regtest.WorkspaceBackup('myfile.mat').BACKUP();
     %
     % [OBJ, VARS] = OBJ.BACKUP(DRYRUN) - if DRYRUN = true, just returns the list of variables that would be saved
     
         arguments
-            obj WorkspaceBackup
+            obj regtest.WorkspaceBackup
             dryrun (1,1) logical = false
         end
 
@@ -139,7 +145,7 @@ methods
         end
     
         if ~isempty(varnames) && (~isempty(obj.skipclasses) || ~isempty(obj.onlyclasses))
-            varinfo = evalin(obj.workspace, WorkspaceBackup.quotedcmd('whos', varnames));
+            varinfo = evalin(obj.workspace, regtest.WorkspaceBackup.quotedcmd('whos', varnames));
 
             if ~isempty(obj.skipclasses)
                 bad = arrayfun(@(x) contains(x.class, obj.skipclasses), varinfo);
@@ -162,7 +168,7 @@ methods
         end
 
         if ~isempty(varnames) && ~dryrun
-            evalin(obj.workspace, WorkspaceBackup.quotedcmd('save', [{obj.file}; varnames]));
+            evalin(obj.workspace, regtest.WorkspaceBackup.quotedcmd('save', [{obj.file}; varnames]));
         end
 
         if nargout > 0, varargout = {obj, varnames}; end

@@ -1,5 +1,5 @@
-function tests = WorkspaceBackupTest()
-% Tests for WorkspaceBackup class
+function tests = TestWorkspaceBackup()
+% Tests for regtest.WorkspaceBackup class
 
     tests = functiontests(localfunctions);
 end
@@ -10,14 +10,14 @@ end
 
 function test_default_constructor(testCase)
 
-	verifyWarningFree(testCase, @() WorkspaceBackup);
-    verifyInstanceOf(testCase, WorkspaceBackup(), 'WorkspaceBackup');
+	verifyWarningFree(testCase, @() regtest.WorkspaceBackup);
+    verifyInstanceOf(testCase, regtest.WorkspaceBackup(), 'regtest.WorkspaceBackup');
 end
 
 function test_set(testCase)
 
-    obj = WorkspaceBackup();
-    verifyWarning(testCase, @() obj.set('verbose',0), 'WorkspaceBackup:set:nargout');
+    obj = regtest.WorkspaceBackup();
+    verifyWarning(testCase, @() obj.set('verbose',0), 'regtest:WorkspaceBackup:set:nargout');
 
     obj = obj.set('onlyclasses', {'foo','bar'}, 'skipnames','b');
     verifyEqual(testCase, obj.onlyclasses, ["foo" "bar"]);
@@ -26,24 +26,24 @@ end
 
 function test_set_file(testCase)
 
-    obj = WorkspaceBackup();
-    verifyError(testCase, @() obj.set('file', 42), 'WorkspaceBackup:setfile:name');
-    verifyError(testCase, @() obj.set('file', 'foo.bar'), 'WorkspaceBackup:setfile:ext');
+    obj = regtest.WorkspaceBackup();
+    verifyError(testCase, @() obj.set('file', 42), 'regtest:WorkspaceBackup:setfile:name');
+    verifyError(testCase, @() obj.set('file', 'foo.bar'), 'regtest:WorkspaceBackup:setfile:ext');
 
     dirlist = dir();
     dirlist(~[dirlist.isdir]) = [];
     nonexisting = matlab.lang.makeUniqueStrings('nonexistingdir',{dirlist.name});
-    verifyError(testCase, @() obj.set('file', fullfile(nonexisting, 'foo.mat')), 'WorkspaceBackup:setfile:path');
+    verifyError(testCase, @() obj.set('file', fullfile(nonexisting, 'foo.mat')), 'regtest:WorkspaceBackup:setfile:path');
 
     obj = obj.set('file','foo');
     verifyEqual(testCase, obj.file, 'foo.mat');
 end
 
 function [obj, a, b, c, result] = example(varargin)
-% Retrn a test WorkspaceBackup object, variables to backup, and expected result
+% Retrn a test regtest.WorkspaceBackup object, variables to backup, and expected result
 
-    % WorkspaceBackup object
-    obj = WorkspaceBackup('', 'interactive', 0, varargin{:});
+    % regtest.WorkspaceBackup object
+    obj = regtest.WorkspaceBackup('', 'interactive', 0, varargin{:});
     obj.onlynames = {'a','b','c'};
 
     % "personalize" obj.file, so that it is different for each test
@@ -55,7 +55,7 @@ function [obj, a, b, c, result] = example(varargin)
     b = 'b';
     c = {3};
 
-    % Expected backup contents (for WorkspaceBackup below)
+    % Expected backup contents (for regtest.WorkspaceBackup below)
     result = cell2struct({a,b,c}',{'a','b','c'});
 end
 
@@ -64,7 +64,7 @@ function test_constructor(testCase)
 
     obj = example();
 
-    verifyInstanceOf(testCase, WorkspaceBackup(), 'WorkspaceBackup');
+    verifyInstanceOf(testCase, regtest.WorkspaceBackup(), 'regtest.WorkspaceBackup');
     verifyEqual(testCase, obj.interactive, false);
 end
 

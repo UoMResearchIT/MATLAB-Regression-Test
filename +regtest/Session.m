@@ -1,10 +1,12 @@
-classdef TestSession < handle
-% TESTSESSION - a helper class to store a global-like index of TESTCHECKPOINT objects 
-% It allows these to be accessed from anywhere in the code, via the constant propperty `TestCheckpoint.session`
+classdef Session < handle
+% regtest.Session - a helper class to store a global-like index of 
+% regtest.Checkpoint objects.
+% It allows these to be accessed from anywhere in the code, 
+% via the constant property `regtest.Checkpoint.session`
 
     properties
       tests = struct()
-      path char {mustBeFolderOrEmpty} = fullfile(fileparts(mfilename('fullpath')),'tests');
+      path char {mustBeFolderOrEmpty} = '';
     end
 
     properties (Dependent)
@@ -13,13 +15,14 @@ classdef TestSession < handle
     end
 
     properties (Constant)
-        indexname char {mustBeTextScalar} = '.TestSessionIndex.mat'
+        indexname char {mustBeTextScalar} = '.SessionIndex.mat'
     end
 
     methods
+
         function yn = exists(obj, test)
-        % more sofisticated tests to follow?
-            mustBeA(test,'TestCheckpoint');
+        % more sophisticated tests to follow?
+            mustBeA(test,'regtest.Checkpoint');
             yn = isfield(obj.tests, test.id);
         end
 
@@ -28,20 +31,25 @@ classdef TestSession < handle
         function filepath = get.indexfile(obj), filepath = fullfile(obj.path, obj.indexname); end
 
         function set.path(obj, path)
-        % Make sure path exists
-            if isempty(path), path = fullfile(fileparts(mfilename('fullpath')),'tests'); end
-            assert(isfolder(path),'Failed to find folder: %s', path);
+            if ~isempty(path)
+                assert(isfolder(path),'Failed to find folder: %s', path);
+                path = cd(cd(path));  % abs path
+            end
             obj.path = path;
         end
 
         function push(obj, test)
 
-            validateattributes(test,'TestCheckpoint', {'scalar'});
+            validateattributes(test,'regtest.Checkpoint', {'scalar'});
 
             if exists(obj, test)
-                warning('TestSession:push:exists','Overwriting test %s', test.id);
+                warning('regtest:Session:push:exists','Overwriting test %s', test.id);
             end
             obj.tests.(test.id) = test;
+
+            if isempty(obj.path)
+                return;
+            end
 
             s = struct(test.id, test);
             if ~isfile(obj.indexfile)
@@ -52,7 +60,7 @@ classdef TestSession < handle
         end
 
         function pp = all(obj, prop)
-            mustBeMember(prop, properties('TestCheckpoint'));
+            mustBeMember(prop, properties('regtest.Checkpoint'));
             try
                 pp = structfun(@(x) x.(prop), obj.tests);
             catch ERR
@@ -84,20 +92,21 @@ classdef TestSession < handle
             if nargin < 2
                 indexfile = obj.indexfile; 
             else
+                if isfolder(indexfile), indexfile = fullfile(indexfile, obj.indexname); end
                 obj.path = fileparts(indexfile);
             end
             T = load(indexfile);
             fld = fieldnames(T);
             for j = 1:numel(fld)
-                validateattributes(T.(fld{j}),{'TestCheckpoint'},{'scalar'});
+                validateattributes(T.(fld{j}),{'regtest.Checkpoint'},{'scalar'});
                 T.(fld{j}).state = '';
             end
             obj.tests = T;
         end
 
-        function rm(obj, id)
-
-        end
+        % function rm(obj, id)
+        % 
+        % end
     end
 end
 
