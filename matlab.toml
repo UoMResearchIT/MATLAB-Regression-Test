@@ -10,7 +10,6 @@ test = [
 ]
 
 [dependencies]
-PkgBuild = {version = ">=1.0", id = "88a98551-056e-41b9-ac04-3f9a08225bf9"}
 
 [project]
 summary = "Tool to add regression checkpoints to messy MATLAB code"

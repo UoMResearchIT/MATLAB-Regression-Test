@@ -3,6 +3,8 @@ import matlab.buildtool.tasks.*
 
 plan = buildplan(localfunctions);
 
+addpath('external/PkgBuild');
+
 if version('-release') < "2026b"
     PkgBuild.startup();
 end

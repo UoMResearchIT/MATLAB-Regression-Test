@@ -1,0 +1,3 @@
+[submodule "external/PkgBuild"]
+	path = external/PkgBuild
+	url = git@github.com:UoMResearchIT/MATLAB-Package-Builder.git
