@@ -1,0 +1,108 @@
+name: Test and [dry]-release
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+
+  push:
+    paths:
+      - '+regtest/**'
+      - 'tests/**'
+      - 'external/**'
+      - 'buildfile.m'
+      - 'matlab.toml'
+      - 'package.ignore'
+      - '.github/workflows/test_and_release.yml'
+
+    tags:
+      - 'v*'
+
+
+jobs:
+  build:
+    name: Test and build toolbox
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Check tag matches matlab.toml version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_version="${GITHUB_REF_NAME#v}"
+          package_version="$(grep -m1 '^version = ' matlab.toml | sed -E 's/^version = "([^"]+)".*/\1/' || true)"
+
+          if [[ -z "$package_version" ]]; then
+            echo "Could not find version in matlab.toml"
+            exit 1
+          fi
+
+          if [[ "$tag_version" != "$package_version" ]]; then
+            echo "Tag version ($tag_version) does not match matlab.toml package version ($package_version)."
+            exit 1
+          fi
+
+          echo "Tag version matches matlab.toml package version: $package_version"
+
+      - name: Set up products
+        uses: matlab-actions/setup-matlab@v3
+        with:
+          release: latest
+          cache: true
+
+      - name: Run tests and generate artifacts
+        uses: matlab-actions/run-tests@v1
+        with:
+          select-by-folder: tests
+          code-coverage-cobertura: code-coverage/coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: code-coverage/coverage.xml
+          flags: matlab
+          fail_ci_if_error: false
+
+      - name: Build toolbox file
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: matlab-actions/run-build@v3
+        with:
+          tasks: check test release
+
+      - name: Upload toolbox artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: matlab-toolbox
+          path: "*.mltbx"
+          if-no-files-found: error
+
+  release:
+    name: Add mltbx file to release artifacts
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download toolbox artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: matlab-toolbox
+          path: .
+
+      - name: Upload toolbox to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ./*.mltbx
+          fail_on_unmatched_files: true
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
