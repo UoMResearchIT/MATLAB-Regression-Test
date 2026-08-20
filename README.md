@@ -1,3 +1,8 @@
+[![tests](https://github.com/UoMResearchIT/MATLAB-Regression-Test/actions/workflows/test_and_release.yaml/badge.svg)](https://github.com/UoMResearchIT/MATLAB-Regression-Test/actions/workflows/test_and_release.yaml)
+[![codecov](https://codecov.io/github/UoMResearchIT/MATLAB-Regression-Test/graph/badge.svg)](https://codecov.io/github/UoMResearchIT/MATLAB-Regression-Test)
+
+<img src="resources/spaghetti.png" alt="polaroid snapshot of a plate of spaghetti" width="40%">
+
 # MATLAB Regression Test
 Tool to add regression checkpoints to messy code (that can later be turned into unit tests).
 
@@ -11,9 +16,7 @@ During and after refactoring, the same probes can be used on `test` mode, to mak
 The package defines three classes:
 +   [`regtest.Checkpoint`](+regtest/Checkpoint.m) defines individual _test objects_ (see [Usage](#usage) below)
 +   [`regtest.WorkspaceBackup`](+regtest/WorkspaceBackup.m) is a wrapper around [`save`](https://uk.mathworks.com/help/matlab/ref/save.html). It allows `regtest.Checkpoint` to do workspace dumps from the caller environment, with additional options (e.g. to exclude certain classes).
-+   [`regtest.Session`](+regtest/Session.m) is used to store a _static_ (global-like)[^1] index of test objects. It allows these to be accessed from anywhere in the code, via the structure `regtest.Checkpoint.session.tests`.
-
-[^1]: <https://uk.mathworks.com/help/matlab/matlab_oop/static-data.html>
++   [`regtest.Session`](+regtest/Session.m) is used to store a _static_ ([global-like](https://uk.mathworks.com/help/matlab/matlab_oop/static-data.html)) index of test objects. It allows these to be accessed from anywhere in the code, via the structure `regtest.Checkpoint.session.tests`.
 
 ## Usage
 
