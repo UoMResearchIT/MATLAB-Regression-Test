@@ -4,9 +4,12 @@ permissions:
   contents: write
 
 on:
+  workflow_dispatch:
+
   pull_request:
 
   push:
+    branches: ['**']
     paths:
       - '+regtest/**'
       - 'tests/**'
@@ -14,10 +17,9 @@ on:
       - 'buildfile.m'
       - 'matlab.toml'
       - 'package.ignore'
-      - '.github/workflows/test_and_release.yml'
+      - '.github/workflows/test_and_release.yaml'
 
-    tags:
-      - 'v*'
+    tags: ['**']
 
 
 jobs:
