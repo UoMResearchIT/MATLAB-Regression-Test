@@ -19,7 +19,7 @@ configuration-name = "Release"
 
 name = "regtest"
 display-name = "MATLAB Regression Test"
-version = "0.3.1"
+version = "0.3.2"
 
 # Should match UUID assigned by File Exchange
 id = "dbc96ef9-8f41-45ce-a66c-c07f99ab56b4"
