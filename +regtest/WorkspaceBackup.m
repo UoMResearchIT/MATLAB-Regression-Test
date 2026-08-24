@@ -203,7 +203,8 @@ methods
         end
 
         if nargout == 0
-            evalin(obj.workspace, strjoin([{'load', obj.file}, variables],' '));
+            cmd = regtest.WorkspaceBackup.quotedcmd('load', [{obj.file}; variables(:)]);
+            evalin(obj.workspace, cmd);
             if obj.verbose, fprintf('Loaded %s onto %s workspace\n', obj.file, obj.workspace); end
         else
             varargout{1} = load(obj.file, variables{:});
